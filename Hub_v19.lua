@@ -17,7 +17,7 @@ local top=make("Frame",{BackgroundColor3=c.panel,Size=UDim2.new(1,0,0,68),Active
 make("Frame",{BackgroundColor3=c.panel,BorderSizePixel=0,Position=UDim2.new(0,0,1,-13),Size=UDim2.new(1,0,0,13)},top)
 local bar=make("Frame",{BackgroundColor3=c.purple,Position=UDim2.fromOffset(17,17),Size=UDim2.fromOffset(5,34)},top);corner(bar,3)
 text(top,"STEAL AN EGG",18,UDim2.fromOffset(32,9),UDim2.fromOffset(280,30),c.white,true)
-text(top,"HUB  /  v19.0  •  ADVANCED CLIENT",10,UDim2.fromOffset(33,37),UDim2.fromOffset(300,18),c.muted)
+text(top,"HUB  /  v19.1  •  ADVANCED CLIENT",10,UDim2.fromOffset(33,37),UDim2.fromOffset(300,18),c.muted)
 local function btn(parent,name,pos,sz,callback)
  local b=make("TextButton",{Text=name,Position=pos,Size=sz,BackgroundColor3=c.raised,TextColor3=c.white,Font=Enum.Font.GothamBold,TextSize=13},parent);corner(b,9);b.MouseButton1Click:Connect(callback);return b
 end
@@ -127,6 +127,7 @@ local function applyMovement()
   h.WalkSpeed=movement.speed
   h.UseJumpPower=true
   h.JumpPower=movement.jump
+  h.JumpHeight=math.max(7.2,movement.jump*movement.jump/(2*workspace.Gravity))
  end)
 end
 local function updateMovement()
@@ -139,13 +140,13 @@ local function movementButton(name,x,y,fn)
  btn(pages.Player,name,UDim2.fromOffset(x,y),UDim2.fromOffset(70,35),fn)
 end
 movementButton("− 5",18,117,function()movement.speed=math.max(0,movement.speed-5);updateMovement()end)
-movementButton("+ 5",96,117,function()movement.speed=math.min(150,movement.speed+5);updateMovement()end)
+movementButton("+ 25",96,117,function()movement.speed=math.min(500,movement.speed+25);updateMovement()end)
 movementButton("32",174,117,function()movement.speed=32;updateMovement()end)
-movementButton("64",252,117,function()movement.speed=64;updateMovement()end)
+movementButton("200",252,117,function()movement.speed=200;updateMovement()end)
 movementButton("− 10",18,211,function()movement.jump=math.max(0,movement.jump-10);updateMovement()end)
-movementButton("+ 10",96,211,function()movement.jump=math.min(200,movement.jump+10);updateMovement()end)
+movementButton("+ 10",96,211,function()movement.jump=math.min(500,movement.jump+25);updateMovement()end)
 movementButton("75",174,211,function()movement.jump=75;updateMovement()end)
-movementButton("100",252,211,function()movement.jump=100;updateMovement()end)
+movementButton("250",252,211,function()movement.jump=250;updateMovement()end)
 btn(pages.Player,"Reset movement",UDim2.fromOffset(18,272),UDim2.new(1,-36,0,40),function()
  movement.speed=16;movement.jump=50;movement.enabled=false
  speedTitle.Text="WalkSpeed: 16";jumpTitle.Text="JumpPower: 50"
@@ -211,8 +212,25 @@ task.spawn(function()while S.alive do
  coords.Text="Position: "..(root and string.format("%.1f / %.1f / %.1f",root.Position.X,root.Position.Y,root.Position.Z) or "N/A")
  task.wait(.5) end end)
 
+-- Read-only movement diagnostics: requested values vs actual displacement
+local diagnostic=text(pages.Settings,"Movement diagnostic: waiting...",11,UDim2.fromOffset(18,272),UDim2.new(1,-36,0,55),c.muted)
+task.spawn(function()
+ local lastPos,lastT
+ while S.alive and gui.Parent do
+  local h=humanoid()
+  local root=L.Character and L.Character:FindFirstChild("HumanoidRootPart")
+  local now=os.clock()
+  if h and root then
+   local measured=lastPos and lastT and (Vector3.new(root.Position.X,0,root.Position.Z)-Vector3.new(lastPos.X,0,lastPos.Z)).Magnitude/math.max(.01,now-lastT) or 0
+   diagnostic.Text=string.format("Requested: %d | Humanoid: %.1f\nActual horizontal speed: %.1f studs/s",movement.speed,h.WalkSpeed,measured)
+   lastPos=root.Position;lastT=now
+  else diagnostic.Text="Movement diagnostic: waiting for character";lastPos=nil;lastT=nil end
+  task.wait(.5)
+ end
+end)
+
 -- Extra movement controls
-local sprint=false;local sprintSpeed=48;local infiniteJump=false;local autoJump=false
+local sprint=false;local sprintSpeed=200;local infiniteJump=false;local autoJump=false
 local sprintButton=btn(pages.Player,"Sprint: OFF",UDim2.fromOffset(18,319),UDim2.fromOffset(145,35),function()sprint=not sprint end)
 local jumpButton=btn(pages.Player,"Infinite jump: OFF",UDim2.fromOffset(170,319),UDim2.fromOffset(151,35),function()infiniteJump=not infiniteJump end)
 local jumpConnection=U.JumpRequest:Connect(function()
