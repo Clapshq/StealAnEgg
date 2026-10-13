@@ -1,4 +1,4 @@
--- Steal An Egg Hub v1.2
+-- Steal An Egg Hub v1.3
 -- Client-side world egg highlighting and diagnostics.
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -22,8 +22,8 @@ gui.Parent = guiParent
 
 local frame = Instance.new("Frame")
 frame.Name = "Panel"
-frame.Size = UDim2.fromOffset(310, 280)
-frame.Position = UDim2.new(0.5, -155, 0.5, -140)
+frame.Size = UDim2.fromOffset(310, 340)
+frame.Position = UDim2.new(0.5, -155, 0.5, -170)
 frame.BackgroundColor3 = Color3.fromRGB(24, 27, 34)
 frame.Active = true
 frame.Draggable = true
@@ -135,6 +135,98 @@ button("Copy World Egg Scan", function()
         status.Text = "Scan printed to console"
     end
 end)
+
+-- Read-only client-visible world diagnostics. No remote invocation or source extraction.
+local function deepScan()
+    local output = {
+        "STEAL AN EGG | DEEP SCAN v1.3",
+        "PlaceId: " .. tostring(game.PlaceId),
+        "Local player: " .. tostring(player.Name),
+        "Client-visible data only; server internals are not accessible."
+    }
+    local limits = {maxObjects = 12000, maxLines = 2500}
+    local scanned, emitted = 0, 0
+    local function add(line)
+        if emitted < limits.maxLines then
+            table.insert(output, line)
+            emitted = emitted + 1
+        end
+    end
+    local roots = {
+        Workspace,
+        game:GetService("ReplicatedStorage"),
+        player:FindFirstChild("PlayerGui")
+    }
+    local interesting = {
+        Model = true, ProximityPrompt = true, ClickDetector = true,
+        RemoteEvent = true, RemoteFunction = true, TouchTransmitter = true,
+        StringValue = true, ObjectValue = true, IntValue = true,
+        NumberValue = true, BoolValue = true
+    }
+    for _, root in ipairs(roots) do
+        if root then
+            add("===== " .. root:GetFullName() .. " =====")
+            local descendants = root:GetDescendants()
+            for _, obj in ipairs(descendants) do
+                scanned = scanned + 1
+                if scanned > limits.maxObjects then break end
+                local name = obj.Name:lower()
+                local relevant = interesting[obj.ClassName]
+                    or name:find("egg", 1, true)
+                    or name:find("steal", 1, true)
+                    or name:find("carry", 1, true)
+                    or name:find("deliver", 1, true)
+                    or name:find("plot", 1, true)
+                if relevant then
+                    local line = obj.ClassName .. " | " .. obj:GetFullName()
+                    if obj:IsA("BasePart") then
+                        line = line .. " | pos=" .. tostring(obj.Position)
+                    elseif obj:IsA("ProximityPrompt") then
+                        line = line .. " | action=" .. tostring(obj.ActionText)
+                            .. " | object=" .. tostring(obj.ObjectText)
+                    end
+                    local attrs = obj:GetAttributes()
+                    local attrParts = {}
+                    local attrCount = 0
+                    for key, value in pairs(attrs) do
+                        attrCount = attrCount + 1
+                        if attrCount > 8 then break end
+                        table.insert(attrParts, tostring(key) .. "=" .. tostring(value))
+                    end
+                    if #attrParts > 0 then
+                        line = line .. " | attrs={" .. table.concat(attrParts, ",") .. "}"
+                    end
+                    add(line)
+                end
+            end
+        end
+    end
+    add("Scanned objects: " .. tostring(scanned))
+    if scanned > limits.maxObjects or emitted >= limits.maxLines then
+        add("TRUNCATED: scan limits reached")
+    end
+    return table.concat(output, "\n")
+end
+
+button("Deep Scan + Copy Results", function()
+    status.Text = "Scanning client-visible game objects..."
+    local ok, report = pcall(deepScan)
+    if not ok then
+        status.Text = "Scan error: " .. tostring(report)
+        return
+    end
+    if type(setclipboard) == "function" then
+        setclipboard(report)
+        status.Text = "Deep scan copied! Paste it into chat."
+    elseif type(writefile) == "function" then
+        writefile("StealAnEgg_DeepScan.txt", report)
+        status.Text = "Saved: StealAnEgg_DeepScan.txt"
+    else
+        print(report)
+        status.Text = "Clipboard unavailable; printed to console."
+    end
+end)
+
 button("Close", function()
     shared.StealAnEggHubCleanup()
     shared.StealAnEggHubCleanup = nil
