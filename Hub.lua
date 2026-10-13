@@ -1,11 +1,19 @@
--- Steal An Egg Hub v1.1
+-- Steal An Egg Hub v1.2
 -- Client-side world egg highlighting and diagnostics.
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 local guiParent = player:WaitForChild("PlayerGui")
-local previous = guiParent:FindFirstChild("StealAnEggHub")
-if previous then previous:Destroy() end
+-- Clean up previous runs, including old GUI copies and their ESP markers.
+local shared = (type(getgenv) == "function" and getgenv()) or _G
+if type(shared.StealAnEggHubCleanup) == "function" then
+    pcall(shared.StealAnEggHubCleanup)
+end
+for _, child in ipairs(guiParent:GetChildren()) do
+    if child:IsA("ScreenGui") and child.Name == "StealAnEggHub" then
+        child:Destroy()
+    end
+end
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "StealAnEggHub"
@@ -43,6 +51,14 @@ label("STEAL AN EGG | WORLD SCANNER", 38)
 local status = label("Teleport removed to prevent deaths.", 50)
 local markers = {}
 local enabled = false
+shared.StealAnEggHubCleanup = function()
+    enabled = false
+    for _, marker in ipairs(markers) do
+        pcall(function() marker:Destroy() end)
+    end
+    table.clear(markers)
+    if gui and gui.Parent then gui:Destroy() end
+end
 
 local function clearMarkers()
     for _, marker in ipairs(markers) do
@@ -120,6 +136,6 @@ button("Copy World Egg Scan", function()
     end
 end)
 button("Close", function()
-    clearMarkers()
-    gui:Destroy()
+    shared.StealAnEggHubCleanup()
+    shared.StealAnEggHubCleanup = nil
 end)
