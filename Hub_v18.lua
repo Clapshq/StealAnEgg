@@ -1,4 +1,4 @@
--- Steal An Egg Hub v18 | Delta / MuMu
+-- Steal An Egg Hub v18.1 | Delta / MuMu
 local P=game:GetService("Players");local U=game:GetService("UserInputService");local L=P.LocalPlayer;local G=L:WaitForChild("PlayerGui")
 local old=G:FindFirstChild("StealAnEggHubV18");if old then old:Destroy() end
 local S={egg=true,nest=true,labels=true,distance=2500,alive=true,visuals={}}
@@ -15,14 +15,14 @@ local top=make("Frame",{BackgroundColor3=c.panel,Size=UDim2.new(1,0,0,68),Active
 make("Frame",{BackgroundColor3=c.panel,BorderSizePixel=0,Position=UDim2.new(0,0,1,-13),Size=UDim2.new(1,0,0,13)},top)
 local bar=make("Frame",{BackgroundColor3=c.purple,Position=UDim2.fromOffset(17,17),Size=UDim2.fromOffset(5,34)},top);corner(bar,3)
 text(top,"STEAL AN EGG",18,UDim2.fromOffset(32,9),UDim2.fromOffset(280,30),c.white,true)
-text(top,"HUB  /  v18.0  •  VISUAL TOOLS",10,UDim2.fromOffset(33,37),UDim2.fromOffset(300,18),c.muted)
+text(top,"HUB  /  v18.1  •  VISUAL TOOLS",10,UDim2.fromOffset(33,37),UDim2.fromOffset(300,18),c.muted)
 local function btn(parent,name,pos,sz,callback)
  local b=make("TextButton",{Text=name,Position=pos,Size=sz,BackgroundColor3=c.raised,TextColor3=c.white,Font=Enum.Font.GothamBold,TextSize=13},parent);corner(b,9);b.MouseButton1Click:Connect(callback);return b
 end
 local side=make("Frame",{Position=UDim2.fromOffset(0,68),Size=UDim2.new(0,124,1,-68),BackgroundColor3=c.panel,BorderSizePixel=0},main)
 local body=make("Frame",{Position=UDim2.fromOffset(124,68),Size=UDim2.new(1,-124,1,-68),BackgroundTransparency=1},main)
 local pages={};local tabs={}
-for i,name in ipairs({"ESP","Settings","About"}) do
+for i,name in ipairs({"ESP","Player","Settings","About"}) do
  pages[name]=make("Frame",{Size=UDim2.fromScale(1,1),BackgroundTransparency=1,Visible=i==1},body)
  tabs[name]=btn(side,name,UDim2.fromOffset(9,15+(i-1)*46),UDim2.fromOffset(105,38),function()
   for k,page in pairs(pages) do page.Visible=k==name;tabs[k].BackgroundColor3=k==name and c.purple or c.raised end
@@ -54,7 +54,7 @@ btn(pages.Settings,"−",UDim2.fromOffset(18,130),UDim2.fromOffset(43,36),functi
 btn(pages.Settings,"+",UDim2.fromOffset(72,130),UDim2.fromOffset(43,36),function()change(500)end)
 local labels=btn(pages.Settings,"Distance labels: ON",UDim2.fromOffset(18,194),UDim2.new(1,-36,0,44),function()S.labels=not S.labels end)
 task.spawn(function()while S.alive do labels.Text="Distance labels: "..(S.labels and "ON" or "OFF");task.wait(.3)end end)
-heading(pages.About,"Steal An Egg Hub","Version 18.0 • client-side overlay")
+heading(pages.About,"Steal An Egg Hub","Version 18.1 • client-side overlay")
 text(pages.About,"Based on Full Scan v4.0.\n\nEggs: Workspace.AreaEggSlotsClient and Workspace.PlacedEggRenders\n\nNests: Workspace.World.Areas.GuardAreas\n\nNo server data is modified.",12,UDim2.fromOffset(18,84),UDim2.new(1,-35,0,200),c.muted)
 local function clear(o) local v=S.visuals[o];if v then for _,x in ipairs(v) do pcall(function()x:Destroy()end)end;S.visuals[o]=nil end end
 local function add(o,color,label)
@@ -108,6 +108,54 @@ local function update()
  local e,n=0,0;for _ in pairs(eggs)do e=e+1 end;for _ in pairs(nests)do n=n+1 end
  counts.egg.Text="Detected: "..e;counts.nest.Text="Detected: "..n
 end
+
+-- Player controls (local Humanoid properties; server may override)
+heading(pages.Player,"Movement controls","Adjust your character's movement")
+local movement={speed=16,jump=50,enabled=false}
+local speedTitle=text(pages.Player,"WalkSpeed: 16",14,UDim2.fromOffset(18,83),UDim2.fromOffset(290,27),c.white,true)
+local jumpTitle=text(pages.Player,"JumpPower: 50",14,UDim2.fromOffset(18,177),UDim2.fromOffset(290,27),c.white,true)
+local function humanoid()
+ local char=L.Character
+ return char and char:FindFirstChildOfClass("Humanoid")
+end
+local function applyMovement()
+ local h=humanoid()
+ if not h then return end
+ pcall(function()
+  h.WalkSpeed=movement.speed
+  h.UseJumpPower=true
+  h.JumpPower=movement.jump
+ end)
+end
+local function updateMovement()
+ speedTitle.Text="WalkSpeed: "..movement.speed
+ jumpTitle.Text="JumpPower: "..movement.jump
+ movement.enabled=true
+ applyMovement()
+end
+local function movementButton(name,x,y,fn)
+ btn(pages.Player,name,UDim2.fromOffset(x,y),UDim2.fromOffset(70,35),fn)
+end
+movementButton("− 5",18,117,function()movement.speed=math.max(0,movement.speed-5);updateMovement()end)
+movementButton("+ 5",96,117,function()movement.speed=math.min(150,movement.speed+5);updateMovement()end)
+movementButton("32",174,117,function()movement.speed=32;updateMovement()end)
+movementButton("64",252,117,function()movement.speed=64;updateMovement()end)
+movementButton("− 10",18,211,function()movement.jump=math.max(0,movement.jump-10);updateMovement()end)
+movementButton("+ 10",96,211,function()movement.jump=math.min(200,movement.jump+10);updateMovement()end)
+movementButton("75",174,211,function()movement.jump=75;updateMovement()end)
+movementButton("100",252,211,function()movement.jump=100;updateMovement()end)
+btn(pages.Player,"Reset movement",UDim2.fromOffset(18,272),UDim2.new(1,-36,0,40),function()
+ movement.speed=16;movement.jump=50;movement.enabled=false
+ speedTitle.Text="WalkSpeed: 16";jumpTitle.Text="JumpPower: 50"
+ applyMovement()
+end)
+task.spawn(function()
+ while S.alive and gui.Parent do
+  if movement.enabled then applyMovement() end
+  task.wait(.65)
+ end
+end)
+
 local drag=false;local dragStart;local startPos
 top.InputBegan:Connect(function(i)if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then drag=true;dragStart=i.Position;startPos=main.Position end end)
 local changed=U.InputChanged:Connect(function(i)if drag and (i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseMovement) then local d=i.Position-dragStart;main.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y)end end)
