@@ -1,99 +1,125 @@
--- Steal An Egg Hub | Delta Android
--- Client-side utility: egg markers, base navigation, and scanner.
-local Players = game:GetService('Players')
-local Workspace = game:GetService('Workspace')
+-- Steal An Egg Hub v1.1
+-- Client-side world egg highlighting and diagnostics.
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
-local pg = player:WaitForChild('PlayerGui')
-local old = pg:FindFirstChild('StealAnEggHub')
-if old then old:Destroy() end
-local gui = Instance.new('ScreenGui')
-gui.Name = 'StealAnEggHub'
+local guiParent = player:WaitForChild("PlayerGui")
+local previous = guiParent:FindFirstChild("StealAnEggHub")
+if previous then previous:Destroy() end
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "StealAnEggHub"
 gui.ResetOnSpawn = false
-gui.Parent = pg
-local frame = Instance.new('Frame')
-frame.Size = UDim2.fromOffset(300, 350)
-frame.Position = UDim2.new(.5,-150,.5,-175)
-frame.BackgroundColor3 = Color3.fromRGB(25,27,34)
+gui.Parent = guiParent
+
+local frame = Instance.new("Frame")
+frame.Name = "Panel"
+frame.Size = UDim2.fromOffset(310, 280)
+frame.Position = UDim2.new(0.5, -155, 0.5, -140)
+frame.BackgroundColor3 = Color3.fromRGB(24, 27, 34)
 frame.Active = true
 frame.Draggable = true
 frame.Parent = gui
-Instance.new('UICorner',frame).CornerRadius = UDim.new(0,12)
-local layout = Instance.new('UIListLayout',frame)
-layout.Padding = UDim.new(0,7)
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+
+local layout = Instance.new("UIListLayout", frame)
+layout.Padding = UDim.new(0, 7)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-local function label(t,h)
- local v=Instance.new('TextLabel');v.Size=UDim2.new(1,-16,0,h or 30);v.BackgroundTransparency=1;v.Text=t;v.TextWrapped=true;v.TextColor3=Color3.new(1,1,1);v.Font=Enum.Font.Gotham;v.TextSize=14;v.Parent=frame;return v
+
+local function label(text, height)
+    local item = Instance.new("TextLabel")
+    item.Size = UDim2.new(1, -20, 0, height)
+    item.BackgroundTransparency = 1
+    item.TextColor3 = Color3.new(1, 1, 1)
+    item.Font = Enum.Font.Gotham
+    item.TextSize = 14
+    item.TextWrapped = true
+    item.Text = text
+    item.Parent = frame
+    return item
 end
-label('STEAL AN EGG | HUB',35)
-local status=label('Ready - client-side tools only',45)
-local function button(t,fn)
- local b=Instance.new('TextButton');b.Size=UDim2.new(1,-22,0,39);b.BackgroundColor3=Color3.fromRGB(43,111,91);b.TextColor3=Color3.new(1,1,1);b.Text=t;b.TextSize=14;b.Font=Enum.Font.GothamBold;b.Parent=frame;Instance.new('UICorner',b).CornerRadius=UDim.new(0,8)
- b.MouseButton1Click:Connect(function() local ok,err=pcall(fn);if not ok then status.Text='Error: '..tostring(err) end end)
- return b
+
+label("STEAL AN EGG | WORLD SCANNER", 38)
+local status = label("Teleport removed to prevent deaths.", 50)
+local markers = {}
+local enabled = false
+
+local function clearMarkers()
+    for _, marker in ipairs(markers) do
+        marker:Destroy()
+    end
+    table.clear(markers)
 end
-local highlights={}
-local esp=false
-local function clearESP()
- for _,h in ipairs(highlights) do pcall(function() h:Destroy() end) end
- table.clear(highlights)
+
+local function updateMarkers()
+    clearMarkers()
+    if not enabled then
+        status.Text = "World egg ESP off"
+        return
+    end
+    local worldEggs = Workspace:FindFirstChild("Eggs")
+    if not worldEggs then
+        status.Text = "Workspace.Eggs not found"
+        return
+    end
+    local count = 0
+    for _, object in ipairs(worldEggs:GetChildren()) do
+        if object:IsA("Model") or object:IsA("BasePart") then
+            local marker = Instance.new("Highlight")
+            marker.Adornee = object
+            marker.FillColor = Color3.fromRGB(255, 207, 55)
+            marker.OutlineColor = Color3.new(1, 1, 1)
+            marker.FillTransparency = 0.65
+            marker.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            marker.Parent = gui
+            table.insert(markers, marker)
+            count = count + 1
+            if count >= 60 then break end
+        end
+    end
+    status.Text = "World egg candidates: " .. count .. " (verify in-game)"
 end
-local function updateESP()
- clearESP()
- if not esp then return end
- local folder=Workspace:FindFirstChild('PlacedEggRenders') or Workspace:FindFirstChild('Eggs')
- if not folder then status.Text='No egg folder currently visible';return end
- local count=0
- for _,obj in ipairs(folder:GetChildren()) do
-  if obj:IsA('Model') or obj:IsA('BasePart') then
-   local h=Instance.new('Highlight');h.Name='EggHubMarker';h.Adornee=obj;h.FillColor=Color3.fromRGB(255,213,60);h.OutlineColor=Color3.new(1,1,1);h.FillTransparency=.7;h.DepthMode=Enum.HighlightDepthMode.AlwaysOnTop;h.Parent=gui
-   table.insert(highlights,h);count=count+1
-   if count>=60 then break end
-  end
- end
- status.Text='Egg markers: '..count
+
+local function button(title, callback)
+    local item = Instance.new("TextButton")
+    item.Size = UDim2.new(1, -20, 0, 40)
+    item.BackgroundColor3 = Color3.fromRGB(43, 111, 91)
+    item.TextColor3 = Color3.new(1, 1, 1)
+    item.Font = Enum.Font.GothamBold
+    item.TextSize = 14
+    item.Text = title
+    item.Parent = frame
+    Instance.new("UICorner", item).CornerRadius = UDim.new(0, 8)
+    item.MouseButton1Click:Connect(callback)
 end
-button('Toggle Egg ESP',function() esp=not esp;updateESP() end)
-local function root()
- local char=player.Character or player.CharacterAdded:Wait()
- return char:FindFirstChild('HumanoidRootPart')
-end
-local function teleportTo(part)
- local r=root();if not r then status.Text='Character not ready';return end
- r.CFrame=part.CFrame*CFrame.new(0,4,0)
- status.Text='Moved to '..part:GetFullName()..' (server may reset position)'
-end
-local plots=Workspace:FindFirstChild('Plots')
-local function getPlots()
- local found={}
- if not plots then return found end
- for _,p in ipairs(plots:GetChildren()) do
-  local sp=p:FindFirstChild('SpawnPoint')
-  if sp and sp:IsA('BasePart') then table.insert(found,{name=p.Name,spawn=sp}) end
- end
- table.sort(found,function(a,b)return a.name<b.name end)
- return found
-end
-local currentPlot=1
-button('Next Plot / Teleport',function()
- local arr=getPlots();if #arr==0 then status.Text='No plots found';return end
- currentPlot=(currentPlot-1)%#arr+1
- local p=arr[currentPlot];teleportTo(p.spawn)
- currentPlot=currentPlot+1
+
+button("Toggle World Egg ESP", function()
+    enabled = not enabled
+    updateMarkers()
 end)
-button('Copy Egg / Plot Scan',function()
- local lines={'STEAL AN EGG HUB SCAN','PlaceId: '..game.PlaceId}
- for _,folderName in ipairs({'Eggs','PlacedEggRenders','AreaEggSlotsClient','Plots'}) do
-  local folder=Workspace:FindFirstChild(folderName)
-  table.insert(lines,folderName..': '..(folder and #folder:GetChildren() or 'missing'))
-  if folder then
-   for i,obj in ipairs(folder:GetChildren()) do
-    if i>30 then break end
-    table.insert(lines,obj.ClassName..' | '..obj:GetFullName())
-   end
-  end
- end
- local data=table.concat(lines,'\n')
- if type(setclipboard)=='function' then setclipboard(data);status.Text='Scan copied to clipboard' else status.Text='Clipboard unsupported; see console';print(data) end
+button("Refresh Egg Markers", updateMarkers)
+button("Copy World Egg Scan", function()
+    local lines = {"PlaceId: " .. tostring(game.PlaceId)}
+    local folder = Workspace:FindFirstChild("Eggs")
+    if folder then
+        table.insert(lines, "Workspace.Eggs: " .. tostring(#folder:GetChildren()))
+        for index, object in ipairs(folder:GetChildren()) do
+            if index > 80 then break end
+            table.insert(lines, object.ClassName .. " | " .. object:GetFullName())
+        end
+    else
+        table.insert(lines, "Workspace.Eggs missing")
+    end
+    local report = table.concat(lines, "\n")
+    if type(setclipboard) == "function" then
+        setclipboard(report)
+        status.Text = "Scan copied to clipboard"
+    else
+        print(report)
+        status.Text = "Scan printed to console"
+    end
 end)
-button('Refresh Egg Markers',updateESP)
-button('Close Hub',function() clearESP();gui:Destroy() end)
+button("Close", function()
+    clearMarkers()
+    gui:Destroy()
+end)
