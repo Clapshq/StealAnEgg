@@ -1,4 +1,4 @@
--- Steal An Egg Hub v1.3
+-- Steal An Egg Hub v1.4
 -- Client-side world egg highlighting and diagnostics.
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -30,6 +30,11 @@ frame.Draggable = true
 frame.Parent = gui
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
 
+local layoutOrder = 0
+local function nextOrder()
+    layoutOrder = layoutOrder + 1
+    return layoutOrder
+end
 local layout = Instance.new("UIListLayout", frame)
 layout.Padding = UDim.new(0, 7)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
@@ -37,6 +42,7 @@ layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 local function label(text, height)
     local item = Instance.new("TextLabel")
     item.Size = UDim2.new(1, -20, 0, height)
+    item.LayoutOrder = nextOrder()
     item.BackgroundTransparency = 1
     item.TextColor3 = Color3.new(1, 1, 1)
     item.Font = Enum.Font.Gotham
@@ -47,7 +53,7 @@ local function label(text, height)
     return item
 end
 
-label("STEAL AN EGG | WORLD SCANNER", 38)
+label("STEAL AN EGG | v1.4 DEEP SCAN", 38)
 local status = label("Teleport removed to prevent deaths.", 50)
 local markers = {}
 local enabled = false
@@ -99,6 +105,7 @@ end
 local function button(title, callback)
     local item = Instance.new("TextButton")
     item.Size = UDim2.new(1, -20, 0, 40)
+    item.LayoutOrder = nextOrder()
     item.BackgroundColor3 = Color3.fromRGB(43, 111, 91)
     item.TextColor3 = Color3.new(1, 1, 1)
     item.Font = Enum.Font.GothamBold
