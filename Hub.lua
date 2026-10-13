@@ -1,4 +1,4 @@
--- Steal An Egg Hub v1.4
+-- Steal An Egg Hub v1.5
 -- Client-side world egg highlighting and diagnostics.
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -53,7 +53,7 @@ local function label(text, height)
     return item
 end
 
-label("STEAL AN EGG | v1.4 DEEP SCAN", 38)
+label("STEAL AN EGG | v1.5 DEEP SCAN", 38)
 local status = label("Teleport removed to prevent deaths.", 50)
 local markers = {}
 local enabled = false
@@ -151,7 +151,7 @@ local function deepScan()
         "Local player: " .. tostring(player.Name),
         "Client-visible data only; server internals are not accessible."
     }
-    local limits = {maxObjects = 12000, maxLines = 2500}
+    local limits = {maxObjects = 25000, maxLines = 1800}
     local scanned, emitted = 0, 0
     local function add(line)
         if emitted < limits.maxLines then
@@ -159,13 +159,17 @@ local function deepScan()
             emitted = emitted + 1
         end
     end
+    local world = Workspace:FindFirstChild("World")
+    local areas = world and world:FindFirstChild("Areas")
     local roots = {
-        Workspace,
-        game:GetService("ReplicatedStorage"),
-        player:FindFirstChild("PlayerGui")
+        Workspace:FindFirstChild("Eggs"),
+        Workspace:FindFirstChild("PlacedEggRenders"),
+        Workspace:FindFirstChild("AreaEggSlotsClient"),
+        areas and areas:FindFirstChild("GuardAreas"),
+        game:GetService("ReplicatedStorage")
     }
     local interesting = {
-        Model = true, ProximityPrompt = true, ClickDetector = true,
+        ProximityPrompt = true, ClickDetector = true,
         RemoteEvent = true, RemoteFunction = true, TouchTransmitter = true,
         StringValue = true, ObjectValue = true, IntValue = true,
         NumberValue = true, BoolValue = true
@@ -183,7 +187,9 @@ local function deepScan()
                     or name:find("steal", 1, true)
                     or name:find("carry", 1, true)
                     or name:find("deliver", 1, true)
-                    or name:find("plot", 1, true)
+                    or name:find("nest", 1, true)
+                    or name:find("guard", 1, true)
+                    or name:find("slot", 1, true)
                 if relevant then
                     local line = obj.ClassName .. " | " .. obj:GetFullName()
                     if obj:IsA("BasePart") then
@@ -215,7 +221,7 @@ local function deepScan()
     return table.concat(output, "\n")
 end
 
-button("Deep Scan + Copy Results", function()
+button("Targeted Deep Scan + Copy", function()
     status.Text = "Scanning client-visible game objects..."
     local ok, report = pcall(deepScan)
     if not ok then
