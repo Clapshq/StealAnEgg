@@ -1,0 +1,119 @@
+-- Steal An Egg Hub v18 | Delta / MuMu
+local P=game:GetService("Players");local U=game:GetService("UserInputService");local L=P.LocalPlayer;local G=L:WaitForChild("PlayerGui")
+local old=G:FindFirstChild("StealAnEggHubV18");if old then old:Destroy() end
+local S={egg=true,nest=true,labels=true,distance=2500,alive=true,visuals={}}
+local c={bg=Color3.fromRGB(12,14,23),panel=Color3.fromRGB(22,25,39),raised=Color3.fromRGB(33,36,55),purple=Color3.fromRGB(151,104,255),green=Color3.fromRGB(89,221,172),white=Color3.fromRGB(241,242,250),muted=Color3.fromRGB(160,166,187)}
+local function make(kind,props,parent) local o=Instance.new(kind);for k,v in pairs(props) do o[k]=v end;o.Parent=parent;return o end
+local function corner(o,r)make("UICorner",{CornerRadius=UDim.new(0,r or 10)},o)end
+local function text(p,str,size,pos,sz,col,bold)
+ return make("TextLabel",{BackgroundTransparency=1,Text=str,TextSize=size,Font=bold and Enum.Font.GothamBold or Enum.Font.Gotham,TextColor3=col or c.white,TextXAlignment=Enum.TextXAlignment.Left,Position=pos,Size=sz,TextWrapped=true},p)
+end
+local gui=make("ScreenGui",{Name="StealAnEggHubV18",ResetOnSpawn=false,DisplayOrder=10000,IgnoreGuiInset=true},G)
+local main=make("Frame",{BackgroundColor3=c.bg,Position=UDim2.new(.5,-235,.5,-205),Size=UDim2.fromOffset(470,410),Active=true},gui);corner(main,16)
+make("UIStroke",{Color=Color3.fromRGB(55,60,85),Thickness=1},main)
+local top=make("Frame",{BackgroundColor3=c.panel,Size=UDim2.new(1,0,0,68),Active=true},main);corner(top,16)
+make("Frame",{BackgroundColor3=c.panel,BorderSizePixel=0,Position=UDim2.new(0,0,1,-13),Size=UDim2.new(1,0,0,13)},top)
+local bar=make("Frame",{BackgroundColor3=c.purple,Position=UDim2.fromOffset(17,17),Size=UDim2.fromOffset(5,34)},top);corner(bar,3)
+text(top,"STEAL AN EGG",18,UDim2.fromOffset(32,9),UDim2.fromOffset(280,30),c.white,true)
+text(top,"HUB  /  v18.0  •  VISUAL TOOLS",10,UDim2.fromOffset(33,37),UDim2.fromOffset(300,18),c.muted)
+local function btn(parent,name,pos,sz,callback)
+ local b=make("TextButton",{Text=name,Position=pos,Size=sz,BackgroundColor3=c.raised,TextColor3=c.white,Font=Enum.Font.GothamBold,TextSize=13},parent);corner(b,9);b.MouseButton1Click:Connect(callback);return b
+end
+local side=make("Frame",{Position=UDim2.fromOffset(0,68),Size=UDim2.new(0,124,1,-68),BackgroundColor3=c.panel,BorderSizePixel=0},main)
+local body=make("Frame",{Position=UDim2.fromOffset(124,68),Size=UDim2.new(1,-124,1,-68),BackgroundTransparency=1},main)
+local pages={};local tabs={}
+for i,name in ipairs({"ESP","Settings","About"}) do
+ pages[name]=make("Frame",{Size=UDim2.fromScale(1,1),BackgroundTransparency=1,Visible=i==1},body)
+ tabs[name]=btn(side,name,UDim2.fromOffset(9,15+(i-1)*46),UDim2.fromOffset(105,38),function()
+  for k,page in pairs(pages) do page.Visible=k==name;tabs[k].BackgroundColor3=k==name and c.purple or c.raised end
+ end)
+end
+tabs.ESP.BackgroundColor3=c.purple
+text(side,"CLIENT SIDE",10,UDim2.new(0,13,1,-40),UDim2.fromOffset(100,20),c.muted,true)
+local function heading(page,a,b)
+ text(page,a,17,UDim2.fromOffset(18,12),UDim2.fromOffset(300,29),c.white,true)
+ text(page,b,11,UDim2.fromOffset(18,42),UDim2.fromOffset(310,22),c.muted)
+end
+heading(pages.ESP,"Visual ESP","Live tracking • client-rendered objects")
+local counts={}
+local function card(y,name,sub,key)
+ local f=make("Frame",{Position=UDim2.fromOffset(15,y),Size=UDim2.new(1,-30,0,80),BackgroundColor3=c.panel},pages.ESP);corner(f,11)
+ text(f,name,14,UDim2.fromOffset(13,9),UDim2.fromOffset(200,24),c.white,true)
+ text(f,sub,10,UDim2.fromOffset(13,32),UDim2.fromOffset(190,20),c.muted)
+ counts[key]=text(f,"Scanning...",10,UDim2.fromOffset(13,56),UDim2.fromOffset(170,18),c.green,true)
+ local b=btn(f,"ON",UDim2.new(1,-78,0,24),UDim2.fromOffset(66,30),function()S[key]=not S[key] end)
+ task.spawn(function()while S.alive and b.Parent do b.Text=S[key] and "ON" or "OFF";b.BackgroundColor3=S[key] and c.purple or c.raised;task.wait(.2)end end)
+end
+card(77,"Egg ESP","Area eggs + placed renders","egg")
+card(168,"Nest ESP","Guard area nest models","nest")
+text(pages.ESP,"Visuals refresh automatically every 1.5 seconds.",10,UDim2.fromOffset(18,270),UDim2.fromOffset(300,38),c.muted)
+heading(pages.Settings,"Preferences","Adjust visual display")
+local dist=text(pages.Settings,"Max ESP distance: 2500 studs",13,UDim2.fromOffset(18,87),UDim2.fromOffset(310,32),c.white,true)
+local function change(n)S.distance=math.clamp(S.distance+n,100,10000);dist.Text="Max ESP distance: "..S.distance.." studs"end
+btn(pages.Settings,"−",UDim2.fromOffset(18,130),UDim2.fromOffset(43,36),function()change(-500)end)
+btn(pages.Settings,"+",UDim2.fromOffset(72,130),UDim2.fromOffset(43,36),function()change(500)end)
+local labels=btn(pages.Settings,"Distance labels: ON",UDim2.fromOffset(18,194),UDim2.new(1,-36,0,44),function()S.labels=not S.labels end)
+task.spawn(function()while S.alive do labels.Text="Distance labels: "..(S.labels and "ON" or "OFF");task.wait(.3)end end)
+heading(pages.About,"Steal An Egg Hub","Version 18.0 • client-side overlay")
+text(pages.About,"Based on Full Scan v4.0.\n\nEggs: Workspace.AreaEggSlotsClient and Workspace.PlacedEggRenders\n\nNests: Workspace.World.Areas.GuardAreas\n\nNo server data is modified.",12,UDim2.fromOffset(18,84),UDim2.new(1,-35,0,200),c.muted)
+local function clear(o) local v=S.visuals[o];if v then for _,x in ipairs(v) do pcall(function()x:Destroy()end)end;S.visuals[o]=nil end end
+local function add(o,color,label)
+ local h=make("Highlight",{Adornee=o,FillColor=color,FillTransparency=.73,OutlineColor=color,OutlineTransparency=0,DepthMode=Enum.HighlightDepthMode.AlwaysOnTop},gui)
+ local list={h};local part=o:IsA("BasePart") and o or o:FindFirstChildWhichIsA("BasePart",true)
+ if part then
+  local b=make("BillboardGui",{Adornee=part,AlwaysOnTop=true,Size=UDim2.fromOffset(175,43),StudsOffsetWorldSpace=Vector3.new(0,3,0),MaxDistance=10000},gui)
+  local t=text(b,label,13,UDim2.fromScale(0,0),UDim2.fromScale(1,1),c.white,true);t.TextXAlignment=Enum.TextXAlignment.Center;t.TextStrokeTransparency=.35
+  list[2]=b
+ end
+ S.visuals[o]=list
+end
+local function scanEggs(t)
+ local a=workspace:FindFirstChild("AreaEggSlotsClient")
+ if a then for _,o in ipairs(a:GetDescendants()) do
+  if o:IsA("Model") and not o.Name:find(":Slot_",1,true) and o:FindFirstChildWhichIsA("BasePart",true) then
+   local childModel=false;for _,ch in ipairs(o:GetChildren()) do if ch:IsA("Model") then childModel=true;break end end
+   if not childModel then t[o]="AREA EGG" end
+  end
+ end end
+ local p=workspace:FindFirstChild("PlacedEggRenders")
+ if p then for _,o in ipairs(p:GetChildren()) do
+  if (o:IsA("BasePart") or o:IsA("Model")) and (o:IsA("BasePart") or o:FindFirstChildWhichIsA("BasePart",true)) then t[o]="PLACED EGG" end
+ end end
+end
+local function scanNests(t)
+ local w=workspace:FindFirstChild("World");local a=w and w:FindFirstChild("Areas");local g=a and a:FindFirstChild("GuardAreas")
+ if not g then return end
+ for _,area in ipairs(g:GetChildren()) do local n=area:FindFirstChild("Nests")
+  if n then for _,o in ipairs(n:GetDescendants()) do if o:IsA("Model") and o.Name=="NestModel" and o:FindFirstChildWhichIsA("BasePart",true) then t[o]=area.Name.." NEST" end end end
+ end
+end
+local function position(o)if o:IsA("BasePart") then return o.Position elseif o:IsA("Model") then return o:GetPivot().Position end end
+local function update()
+ local eggs,nests,desired={},{},{}
+ if S.egg then scanEggs(eggs)end;if S.nest then scanNests(nests)end
+ local char=L.Character;local hrp=char and char:FindFirstChild("HumanoidRootPart")
+ local function render(items,color)
+  for o,label in pairs(items) do
+   local p=position(o)
+   if o.Parent and p and (not hrp or (hrp.Position-p).Magnitude<=S.distance) then
+    desired[o]=true
+    if not S.visuals[o] then add(o,color,label)end
+    local v=S.visuals[o]
+    if v and v[2] then v[2].Enabled=S.labels;local t=v[2]:FindFirstChildOfClass("TextLabel");if t then t.Text=label..(hrp and ("\n"..math.floor((hrp.Position-p).Magnitude).." studs") or "")end end
+   end
+  end
+ end
+ render(eggs,c.green);render(nests,c.purple)
+ for o in pairs(S.visuals) do if not desired[o] then clear(o)end end
+ local e,n=0,0;for _ in pairs(eggs)do e=e+1 end;for _ in pairs(nests)do n=n+1 end
+ counts.egg.Text="Detected: "..e;counts.nest.Text="Detected: "..n
+end
+local drag=false;local dragStart;local startPos
+top.InputBegan:Connect(function(i)if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then drag=true;dragStart=i.Position;startPos=main.Position end end)
+local changed=U.InputChanged:Connect(function(i)if drag and (i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseMovement) then local d=i.Position-dragStart;main.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y)end end)
+local ended=U.InputEnded:Connect(function(i)if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then drag=false end end)
+local function destroy()S.alive=false;changed:Disconnect();ended:Disconnect();for o in pairs(S.visuals)do clear(o)end;gui:Destroy()end
+btn(top,"×",UDim2.new(1,-39,0,19),UDim2.fromOffset(29,29),destroy)
+local minimized=false
+local mini=btn(top,"−",UDim2.new(1,-75,0,19),UDim2.fromOffset(29,29),function()minimized=not minimized;main.Size=minimized and UDim2.fromOffset(470,68) or UDim2.fromOffset(470,410);side.Visible=not minimized;body.Visible=not minimized end)
+task.spawn(function()while S.alive and gui.Parent do pcall(update);task.wait(1.5)end end)
